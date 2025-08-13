@@ -1,24 +1,24 @@
-import { cfg } from "./config";
-import { handlerLogin, handlerRefresh, handlerRevoke } from "./api/auth";
+import { ensureAssetsDir } from "./api/assets"
+import { handlerLogin, handlerRefresh, handlerRevoke } from "./api/auth"
 import {
   errorHandlingMiddleware,
-  cacheMiddleware,
+  noCacheMiddleware,
   withConfig,
-} from "./api/middleware";
-import { handlerUsersCreate } from "./api/users";
+} from "./api/middleware"
+import { handlerReset } from "./api/reset"
+import { handlerUploadThumbnail } from "./api/thumbnails"
+import { handlerUsersCreate } from "./api/users"
 import {
   handlerVideoGet,
   handlerVideoMetaCreate,
   handlerVideoMetaDelete,
   handlerVideosRetrieve,
-} from "./api/video-meta";
-import { handlerUploadVideo } from "./api/videos";
-import { handlerUploadThumbnail, handlerGetThumbnail } from "./api/thumbnails";
-import { handlerReset } from "./api/reset";
-import { ensureAssetsDir } from "./api/assets";
-import spa from "./app/index.html";
+} from "./api/video-meta"
+import { handlerUploadVideo } from "./api/videos"
+import spa from "./app/index.html"
+import { cfg } from "./config"
 
-ensureAssetsDir(cfg);
+ensureAssetsDir(cfg)
 
 Bun.serve({
   port: Number(cfg.port),
@@ -48,9 +48,6 @@ Bun.serve({
     "/api/thumbnail_upload/:videoId": {
       POST: withConfig(cfg, handlerUploadThumbnail),
     },
-    "/api/thumbnails/:videoId": {
-      GET: withConfig(cfg, handlerGetThumbnail),
-    },
     "/api/video_upload/:videoId": {
       POST: withConfig(cfg, handlerUploadVideo),
     },
@@ -60,34 +57,34 @@ Bun.serve({
   },
 
   async fetch(req) {
-    const url = new URL(req.url);
-    const path = url.pathname;
+    const url = new URL(req.url)
+    const path = url.pathname
 
     if (path.startsWith("/assets")) {
-      return cacheMiddleware(() =>
+      return noCacheMiddleware(() =>
         serveStaticFile(path.replace("/assets/", ""), cfg.assetsRoot)
-      )(req);
+      )(req)
     }
 
-    return new Response("Not Found", { status: 404 });
+    return new Response("Not Found", { status: 404 })
   },
 
   error(err) {
-    return errorHandlingMiddleware(cfg, err);
+    return errorHandlingMiddleware(cfg, err)
   },
-});
+})
 
-console.log(`Server running at http://localhost:${cfg.port}`);
+console.log(`Server running at http://localhost:${cfg.port}`)
 
 async function serveStaticFile(relativePath: string, basePath: string) {
-  const filePath = `${basePath}/${relativePath}`;
+  const filePath = `${basePath}/${relativePath}`
 
   try {
-    const f = Bun.file(filePath);
+    const f = Bun.file(filePath)
     return new Response(await f.bytes(), {
       headers: { "Content-Type": f.type || "application/octet-stream" },
-    });
+    })
   } catch {
-    return new Response("File not found", { status: 404 });
+    return new Response("File not found", { status: 404 })
   }
 }
